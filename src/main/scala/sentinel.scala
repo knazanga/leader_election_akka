@@ -27,9 +27,9 @@ import math._
  */
 class Sentinel(nb_nodes: Int) extends Actor {
   val node = context.actorSelection("/user/Node")
-  val local = context.actorSelection("/user/Node/*")
   var allNodes: List[Int] = Nil
   var aliveNodes: List[Int] = Nil
+  var signalBeat: List[Int] = Nil
   var leader: Int = 0
 
   val scheduler = context.system.scheduler
@@ -38,25 +38,33 @@ class Sentinel(nb_nodes: Int) extends Actor {
   def receive = {
 
     case Beat(src) => {
+      if (!signalBeat.contains(src)) {
+        signalBeat = src :: signalBeat
+      }
       if (allNodes.contains(src)) {
-        aliveNodes = src :: aliveNodes
+        if (!aliveNodes.contains(src)) {
+          aliveNodes = src :: aliveNodes
+        }
       } else {
         allNodes = src :: allNodes
         aliveNodes = src :: aliveNodes
         node ! LiveNodesChanged(aliveNodes)
       }
+      //println("Node " + src + " is alive")
     }
     case LeaderBeat(src) =>
       if (src != leader) {
         leader = src
         node ! LeaderChanged(src)
       }
+      self ! Beat(src)
     case Check => {
-      if (listChange(allNodes, aliveNodes)) {
+      if (allNodes.length != aliveNodes.length) {
         node ! LiveNodesChanged(aliveNodes)
         allNodes = aliveNodes
       }
-      aliveNodes = Nil
+      aliveNodes = signalBeat
+      signalBeat=Nil
       scheduler.scheduleOnce(Const.SENTINEL_PERIOD, self, Check)
     }
     case _ =>

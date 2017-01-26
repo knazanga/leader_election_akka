@@ -30,7 +30,9 @@ class Interface(id: Int, m: Terminal) extends Actor {
     case LeaderChanged(id) =>
       println("Le leader est " + id)
     case LiveNodesChanged(nodes) =>
-      println("Le nombre de noeuds a changé")
+      print("Les noeuds actifs: \n[ ");
+      nodes.foreach { n => print(n + " ") };
+      print(" ]\n");
   }
 
   case object PrintStatus

@@ -32,13 +32,15 @@ class BeatActor(id: Int) extends Actor {
 
   val scheduler = context.system.scheduler
   val node = context.actorSelection("/user/Node")
-  val sentinel = context.actorSelection("/user/Node/sentinel")
+
   def receive = {
     case Tick => {
       if (id == leader) {
         node ! OutGoingMessage(LeaderBeat(id))
+        node ! LeaderBeat(id)
       } else {
         node ! OutGoingMessage(Beat(id))
+        node ! Beat(id)
       }
       scheduler.scheduleOnce(Const.HEART_BEAT_PERIOD, self, Tick)
     }

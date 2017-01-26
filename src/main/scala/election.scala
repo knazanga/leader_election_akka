@@ -39,7 +39,6 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
 
     case LiveNodesChanged(nodes) => {
       if (!nodes.contains(leader)) {
-        println("Begin election!")
       }
     }
     case _ => println("LiveNodesChanged")
