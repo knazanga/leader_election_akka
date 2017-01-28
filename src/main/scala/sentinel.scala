@@ -50,7 +50,7 @@ class Sentinel(nb_nodes: Int) extends Actor {
         aliveNodes = src :: aliveNodes
         node ! LiveNodesChanged(aliveNodes)
       }
-      //println("Node " + src + " is alive")
+
     }
     case LeaderBeat(src) =>
       if (src != leader) {
@@ -64,9 +64,10 @@ class Sentinel(nb_nodes: Int) extends Actor {
         allNodes = aliveNodes
       }
       aliveNodes = signalBeat
-      signalBeat=Nil
+      signalBeat = Nil
       scheduler.scheduleOnce(Const.SENTINEL_PERIOD, self, Check)
     }
+
     case _ =>
   }
 

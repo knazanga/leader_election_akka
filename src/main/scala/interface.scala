@@ -22,17 +22,19 @@ import math._
 */
 class Interface(id: Int, m: Terminal) extends Actor {
   var scheduler = context.system.scheduler
-
+  var leader: Int = _
   def receive = {
     case PrintStatus =>
+      //println("Le leader est " + leader)
       scheduler.scheduleOnce(Const.STATUS_PRINTING_DELAY, self, PrintStatus)
 
-    case LeaderChanged(id) =>
-      println("Le leader est " + id)
+    case LeaderChanged(i) =>
+      leader = i
+      println("Le leader est " + i)
     case LiveNodesChanged(nodes) =>
-      print("Les noeuds actifs: \n[ ");
-      nodes.foreach { n => print(n + " ") };
-      print(" ]\n");
+    //print("[ ");
+    //nodes.foreach { n => print(n + " ") };
+    //print(" ]\n");
   }
 
   case object PrintStatus

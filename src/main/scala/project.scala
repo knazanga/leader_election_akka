@@ -42,7 +42,7 @@ case class LiveNodesChanged(live_nodes: List[Int])
 /* External messages : exchanged between nodes in the network*/
 abstract class Message
 case class Beat(i: Int) extends Message
-case class ALG(i: Int) extends Message
+case class ALG(i: Int) extends Message //Send by Candidate to its successor
 case class AVS(j: Int) extends Message
 case class AVSRSP(k: Int) extends Message
 case class LeaderBeat(id: Int) extends Message
@@ -89,9 +89,9 @@ object Project extends App {
         }
 
       case SendElectionMessage(m, dest) =>
-
+        get_node(dest) ! ElectionMessage(m, dest)
       case ElectionMessage(m, dest) =>
-
+        elector ! m
       case LeaderChanged(leader) =>
         beat ! LeaderChanged(leader)
         display ! LeaderChanged(leader)
