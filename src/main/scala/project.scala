@@ -78,6 +78,8 @@ object Project extends App {
         checker ! Beat(i)
       case LeaderBeat(i) =>
         checker ! LeaderBeat(i)
+        elector ! LeaderBeat(i)
+        display ! LeaderBeat(i)
       case OutGoingMessage(m) =>
         for (d <- nodes.indices) {
           if (d != n_id) {
@@ -88,8 +90,13 @@ object Project extends App {
           }
         }
 
-      case SendElectionMessage(m, dest) =>
-        get_node(dest) ! ElectionMessage(m, dest)
+      case SendElectionMessage(m, dest) => {
+        if (dest == n_id)
+          self ! ElectionMessage(m, dest)
+        else
+          get_node(dest) ! ElectionMessage(m, dest)
+
+      }
       case ElectionMessage(m, dest) =>
         elector ! m
       case LeaderChanged(leader) =>

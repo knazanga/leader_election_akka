@@ -22,7 +22,7 @@ import math._
 */
 class Interface(id: Int, m: Terminal) extends Actor {
   var scheduler = context.system.scheduler
-  var leader: Int = _
+  var leader: Int = -1
   def receive = {
     case PrintStatus =>
       //println("Le leader est " + leader)

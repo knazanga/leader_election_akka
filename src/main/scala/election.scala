@@ -11,6 +11,8 @@ import akka.io._
 import akka.util.Timeout
 import akka.util.ByteString
 
+import scala.concurrent.ExecutionContext.Implicits._
+
 import java.net._
 import collection.JavaConversions._
 
@@ -27,7 +29,7 @@ import math._
 class ElectionAgent(id: Int, nb_players: Int) extends Actor {
   var electors: List[Int] = Nil
   var becomeCandidate: Boolean = false
-  var leader: Int = 0
+  var leader: Int = -1
   var cand_pred: Int = -1
   var cand_succ: Int = -1
   var status: ElectionStatus = Passive
@@ -40,27 +42,29 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
   case object Leader extends ElectionStatus
   case object Waiting extends ElectionStatus
 
-  def receive = {
+  val scheduler = context.system.scheduler.scheduleOnce(Const.LEADER_NEGOCIATION_DELAY, self, InitLeader)
 
+  case object InitLeader
+
+  def receive = {
     case LiveNodesChanged(nodes) => {
-      if (!nodes.contains(leader) && nodes.length > 1) {
-        electors = nodes
-        if (math.random < 0.75)
+      if (leader >= 0 && !nodes.contains(leader)) {
+        if (nodes.length == 1) {
+          leader = id
+          context.parent ! LeaderChanged(id)
+        } else if (math.random < 0.75)
           self ! INITIATE
+        else
+          println("Mais je veux pas etre candidat")
       }
     }
 
     case INITIATE => {
-      //println("Initiation de la négociation")
       status = Candidate
       cand_pred = -1
       cand_succ = -1
-      for (i <- 0 until electors.length) {
-        if (electors(i) == id) {
-          context.parent ! SendElectionMessage(ALG(i), get_neighbor())
-          println("ALG message send to " + get_neighbor())
-        }
-      }
+      context.parent ! SendElectionMessage(ALG(id), get_neighbor())
+      println("ALG message send to " + get_neighbor())
     }
 
     case ALG(init) => {
@@ -68,11 +72,7 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
       if (status == Passive) {
         println("I'm passive")
         status = Dummy
-        for (i <- 0 until electors.length) {
-          if (electors(i) == id) {
-            context.parent ! SendElectionMessage(ALG(init), get_neighbor())
-          }
-        }
+        context.parent ! SendElectionMessage(ALG(init), get_neighbor())
       } else if (status == Candidate) {
         println("I'm candidate, so you go down")
         cand_pred = init
@@ -81,8 +81,8 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
             status = Waiting
             context.parent ! SendElectionMessage(AVS(id), init)
           } else {
-            status = Dummy
             context.parent ! SendElectionMessage(AVSRSP(cand_pred), cand_succ)
+            status = Dummy
           }
         } else if (id == init) {
           println("Yes, I'm the new leader!!!")
@@ -126,22 +126,32 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
               context.parent ! SendElectionMessage(AVS(id), j)
             }
           } else {
-            status = Waiting
             context.parent ! SendElectionMessage(AVSRSP(j), cand_succ)
+            status = Dummy
           }
         }
       }
     }
-    case _ => println("LiveNodesChanged")
+    case InitLeader => {
+      if (leader < 0) {
+        leader = id
+        context.parent ! LeaderChanged(leader)
+      }
+    }
+
+    case LeaderBeat(i) =>
+      leader = i
+      context.parent ! LeaderChanged(leader)
+    case _ =>
   }
 
   def get_neighbor(): Int = {
     var nb: Int = id
     for (i <- 0 until electors.length) {
       if (electors(i) == id) {
-        nb = (i + 1) % electors.length
+        nb = electors((i + 1) % electors.length)
       }
     }
-    electors(nb)
+    nb
   }
 }

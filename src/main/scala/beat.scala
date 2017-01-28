@@ -26,7 +26,7 @@ import math._
  */
 
 class BeatActor(id: Int) extends Actor {
-  var leader: Int = 0
+  var leader: Int = -1
 
   case object Tick
 

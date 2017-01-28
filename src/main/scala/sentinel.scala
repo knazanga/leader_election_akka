@@ -30,7 +30,7 @@ class Sentinel(nb_nodes: Int) extends Actor {
   var allNodes: List[Int] = Nil
   var aliveNodes: List[Int] = Nil
   var signalBeat: List[Int] = Nil
-  var leader: Int = 0
+  var leader: Int = -1
 
   val scheduler = context.system.scheduler
   case object Check
