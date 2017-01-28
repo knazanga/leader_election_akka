@@ -26,7 +26,7 @@ import math._
  leader.
 */
 
-class ElectionAgent(id: Int, nb_players: Int) extends Actor {
+class ElectionAgent(id: Int, nb_nodes: Int) extends Actor {
   var electors: List[Int] = Nil
   var becomeCandidate: Boolean = false
   var leader: Int = -1
@@ -42,20 +42,16 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
   case object Leader extends ElectionStatus
   case object Waiting extends ElectionStatus
 
-  val scheduler = context.system.scheduler.scheduleOnce(Const.LEADER_NEGOCIATION_DELAY, self, InitLeader)
-
+  val scheduler = context.system.scheduler
   case object InitLeader
 
   def receive = {
     case LiveNodesChanged(nodes) => {
-      if (leader >= 0 && !nodes.contains(leader)) {
-        if (nodes.length == 1) {
-          leader = id
-          context.parent ! LeaderChanged(id)
-        } else if (math.random < 0.75)
-          self ! INITIATE
-        else
-          println("Mais je veux pas etre candidat")
+      electors = nodes
+      if (leader < 0) {
+        scheduler.scheduleOnce(Const.LEADER_NEGOCIATION_DELAY, self, InitLeader)
+      } else if (!nodes.contains(leader)) {
+        self ! INITIATE
       }
     }
 
@@ -64,24 +60,25 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
       cand_pred = -1
       cand_succ = -1
       context.parent ! SendElectionMessage(ALG(id), get_neighbor())
-      println("ALG message send to " + get_neighbor())
+      println("ALG Message sent to " + get_neighbor())
     }
 
     case ALG(init) => {
-      println("ALG message receive from " + init)
-      if (status == Passive) {
-        println("I'm passive")
+      println("ALG Message received from " + get_neighbor())
+      if (status.equals(Passive)) {
         status = Dummy
         context.parent ! SendElectionMessage(ALG(init), get_neighbor())
-      } else if (status == Candidate) {
-        println("I'm candidate, so you go down")
+        println("ALG Message sent to " + get_neighbor())
+      } else if (status.equals(Candidate)) {
         cand_pred = init
         if (id > init) {
           if (cand_succ == -1) {
             status = Waiting
             context.parent ! SendElectionMessage(AVS(id), init)
+            println("AVS Message sent to " +init)
           } else {
             context.parent ! SendElectionMessage(AVSRSP(cand_pred), cand_succ)
+            println("AVSRSP Message sent to "+cand_succ)
             status = Dummy
           }
         } else if (id == init) {
@@ -94,24 +91,25 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
     }
 
     case AVS(j) => {
-      println("AVS message receive from " + j)
-      if (status == Passive) {
-        println("I'm passive")
+      println("AVS message received from " + j)
+      if (status.equals(Candidate)) {
+        println("I'm candidate")
         if (cand_pred == -1) {
           cand_succ = j
         } else {
           context.parent ! SendElectionMessage(AVSRSP(cand_pred), j)
+          println("AVSRSP message send to " + j)
           status = Dummy
         }
-      } else if (status == Waiting) {
+      } else if (status.equals(Waiting)) {
         println("I'm waiting")
         cand_succ = j
       }
     }
 
     case AVSRSP(j) => {
-      println("AVSRSP receive from " + j)
-      if (status == Waiting) {
+      println("AVSRSP received from " + j)
+      if (status.equals(Waiting)) {
         println("I'm waiting")
         if (id == j) {
           println("Yes, I'm the new leader!!!")
@@ -124,9 +122,11 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
             if (j < id) {
               status = Waiting
               context.parent ! SendElectionMessage(AVS(id), j)
+              println("AVS message send to " + j)
             }
           } else {
             context.parent ! SendElectionMessage(AVSRSP(j), cand_succ)
+            println("AVSRSP message send to " + cand_succ)
             status = Dummy
           }
         }
@@ -138,10 +138,8 @@ class ElectionAgent(id: Int, nb_players: Int) extends Actor {
         context.parent ! LeaderChanged(leader)
       }
     }
-
     case LeaderBeat(i) =>
       leader = i
-      context.parent ! LeaderChanged(leader)
     case _ =>
   }
 

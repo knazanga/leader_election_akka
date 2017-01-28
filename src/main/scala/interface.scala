@@ -25,16 +25,19 @@ class Interface(id: Int, m: Terminal) extends Actor {
   var leader: Int = -1
   def receive = {
     case PrintStatus =>
-      //println("Le leader est " + leader)
+      //if (leader == id)
+      //  println("Je suis le leader")
+      //else
+      //println("Le leader est :" + leader)
       scheduler.scheduleOnce(Const.STATUS_PRINTING_DELAY, self, PrintStatus)
 
     case LeaderChanged(i) =>
       leader = i
-      println("Le leader est " + i)
+      println("le leader est " + leader)
     case LiveNodesChanged(nodes) =>
-    //print("[ ");
-    //nodes.foreach { n => print(n + " ") };
-    //print(" ]\n");
+      print("[ ");
+      nodes.foreach { n => print(n + " ") };
+      print(" ]\n");
   }
 
   case object PrintStatus
