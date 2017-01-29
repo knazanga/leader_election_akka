@@ -95,7 +95,7 @@ object Project extends App {
           elector ! m
         } else {
           var dest_node = get_node(dest)
-          dest_node ! ElectionMessage(m, dest)
+            dest_node ! ElectionMessage(m, dest)
         }
       }
       case ElectionMessage(m, dest) =>

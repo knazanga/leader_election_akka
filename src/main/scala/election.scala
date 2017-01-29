@@ -59,10 +59,15 @@ class ElectionAgent(id: Int, nb_nodes: Int) extends Actor {
       status = Candidate
       cand_pred = -1
       cand_succ = -1
-      context.parent ! SendElectionMessage(ALG(id), get_next())
-      println("ALG Message sent to " + get_next())
+      if (electors.length == 1) {
+        println("Yes, I'm the leader")
+        leader = id
+        context.parent ! LeaderChanged(leader)
+      } else {
+        context.parent ! SendElectionMessage(ALG(id), get_next())
+        println("ALG Message sent to " + get_next())
+      }
     }
-
     case ALG(init) => {
       println("ALG Message received from " + get_next())
       if (status.equals(Passive)) {
@@ -158,9 +163,7 @@ class ElectionAgent(id: Int, nb_nodes: Int) extends Actor {
     var next: Int = id
     while (!isIt) {
       next = (next + 1) % electors.length
-      if (electors.contains(next)) {
-        isIt = true
-      }
+      isIt = electors.contains(next)
     }
     next
   }
