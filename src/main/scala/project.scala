@@ -94,9 +94,8 @@ object Project extends App {
         if (dest == n_id) {
           elector ! m
         } else {
-          val dest_node = get_node(dest)
-          if (dest_node != null)
-            dest_node ! ElectionMessage(m, dest)
+          var dest_node = get_node(dest)
+          dest_node ! ElectionMessage(m, dest)
         }
       }
       case ElectionMessage(m, dest) =>

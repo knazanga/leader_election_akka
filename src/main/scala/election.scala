@@ -59,26 +59,26 @@ class ElectionAgent(id: Int, nb_nodes: Int) extends Actor {
       status = Candidate
       cand_pred = -1
       cand_succ = -1
-      context.parent ! SendElectionMessage(ALG(id), get_neighbor())
-      println("ALG Message sent to " + get_neighbor())
+      context.parent ! SendElectionMessage(ALG(id), get_next())
+      println("ALG Message sent to " + get_next())
     }
 
     case ALG(init) => {
-      println("ALG Message received from " + get_neighbor())
+      println("ALG Message received from " + get_next())
       if (status.equals(Passive)) {
         status = Dummy
-        context.parent ! SendElectionMessage(ALG(init), get_neighbor())
-        println("ALG Message sent to " + get_neighbor())
+        context.parent ! SendElectionMessage(ALG(init), get_next())
+        println("ALG Message sent to " + get_next())
       } else if (status.equals(Candidate)) {
         cand_pred = init
         if (id > init) {
           if (cand_succ == -1) {
             status = Waiting
             context.parent ! SendElectionMessage(AVS(id), init)
-            println("AVS Message sent to " +init)
+            println("AVS Message sent to " + init)
           } else {
             context.parent ! SendElectionMessage(AVSRSP(cand_pred), cand_succ)
-            println("AVSRSP Message sent to "+cand_succ)
+            println("AVSRSP Message sent to " + cand_succ)
             status = Dummy
           }
         } else if (id == init) {
@@ -151,5 +151,17 @@ class ElectionAgent(id: Int, nb_nodes: Int) extends Actor {
       }
     }
     nb
+  }
+
+  def get_next(): Int = {
+    var isIt: Boolean = false
+    var next: Int = id
+    while (!isIt) {
+      next = (next + 1) % electors.length
+      if (electors.contains(next)) {
+        isIt = true
+      }
+    }
+    next
   }
 }
